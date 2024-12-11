@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+    <title>Find the Lights</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'DungGeunMo', sans-serif;
+        }
+        
+        .background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('../background/6.jpg') no-repeat center center;
+            background-size: cover;
+        }
+        
+        .dialogue-box {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            background-color: #202532;
+            padding: 40px;
+            border-radius: 10px;
+            border: 2px solid #fff;
+            color: white;
+            font-size: 28px;
+            text-align: left;
+            height: 200px;
+            z-index: 3;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        
+        .name-box {
+            position: absolute;
+            border-radius: 5px;
+            top: -40px;
+            left: 10px;
+            padding: 5px 10px;
+            background-color: #30343c;
+            border: 2px solid #fff;
+            color: white;
+            font-size: 30px;
+        }
+
+        .portrait {
+            position: absolute;
+            left: -15px;
+            bottom: 320px;
+            height: 120px;
+            image-rendering: pixelated;
+            display: none;
+        }
+
+        .portrait.apollo {
+            left: -15px;
+            bottom: 320px;
+            height: 120px;
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 30px;
+            background-color: white;
+            margin-left: 5px;
+            animation: cursor-blink 0.7s infinite;
+        }
+
+        @keyframes cursor-blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .prev-button {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 40px;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .next-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 40px;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .progress-circles {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 2;
+        }
+
+        .circle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .circle.filled {
+            background-color: white;
+        }
+
+        .circle.merge {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            transition: all 1s ease !important;
+            opacity: 0 !important;
+        }
+
+        .home-logo {
+            position: fixed;
+            top: 20px;
+            left: -10px;
+            z-index: 1002;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .home-logo:hover {
+            transform: scale(1.1);
+        }
+
+        .home-logo img {
+            width: 300px;
+            height: auto;
+        }
+
+        .flash-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1000;
+    animation: multipleFlash 2s ease-out;
+}
+
+@keyframes multipleFlash {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    25% { opacity: 0; }
+    35% { opacity: 1; }
+    40% { opacity: 0; }
+    45% { opacity: 1; }
+    50% { opacity: 0; }
+    55% { opacity: 0.8; }
+    60% { opacity: 0; }
+    65% { opacity: 0.6; }
+    70% { opacity: 0; }
+    75% { opacity: 0.4; }
+    80% { opacity: 0; }
+    100% { opacity: 0; }
+}
+
+
+
+        .dialogue-box.fade-out {
+            opacity: 0 !important;
+            transition: opacity 0.5s ease !important;
+        }
+
+        #character-image.fade-out {
+            opacity: 0 !important;
+            transition: opacity 0.5s ease !important;
+        }
+
+        .character-center-image {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            height: 400px;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="flash-overlay"></div>
+    <a href="../index.html" class="home-logo">
+        <img src="../logo-13.png" alt="홈으로 가기">
+    </a>
+    <div class="background">
+        <div class="progress-circles">
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+        </div>
+        <div class="dialogue-box">
+            <div class="name-box">토니</div>
+            <img class="portrait" src="../character/tony_face.png" alt="토니">
+            <span id="dialogue-text"></span><span class="typing-cursor"></span>
+            <button class="prev-button" onclick="prevDialogue()">◀</button>
+            <button class="next-button" onclick="nextDialogue()">▶</button>
+        </div>
+    </div>
+
+    <script>
+        const dialogueBox = document.querySelector('.dialogue-box');
+        const dialogueTextElement = document.getElementById("dialogue-text");
+        const nameBox = document.querySelector('.name-box');
+        const prevButton = document.querySelector('.prev-button');
+        const nextButton = document.querySelector('.next-button');
+        const portrait = document.querySelector('.portrait');
+
+        let currentDialogue = 0;
+        let isTyping = false;
+        let typewriterTimeout;
+        let isShowingImage = false;
+
+        const dialogues = [
+            "여기는 어디지..?",
+            "오랜만에 보는구나, 토니",
+            "제우스님!",
+            "약속대로 모든 신들의 빛을 가져왔구나.",
+            "고생 많았다. 마지막으로 내가 너에게 천상의 빛을 선사하겠노라.",
+            "그러면 이제 저희 마을에 빛이 되돌아오는건가요?",
+            "그래. 앞으로 평화로운 일상이 찾아올 것이다.",
+            "기회가 된다면 또 보자구나, 수고했다 토니."
+        ];
+
+        const names = [
+            "토니",
+            "???",
+            "토니",
+            "제우스",
+            "제우스",
+            "토니",
+            "제우스",
+            "제우스"
+        ];
+
+        function performFinalAnimation() {
+    dialogueBox.classList.add('fade-out');
+
+    const characterImage = document.getElementById('character-image');
+    if (characterImage) {
+        characterImage.classList.add('fade-out');
+    }
+
+    const circles = document.querySelectorAll('.circle');
+    const totalCircles = circles.length;
+    const maxSize = Math.max(window.innerWidth, window.innerHeight) * 2;
+    const duration = 1000;
+    const delay = 200;
+
+    circles.forEach((circle, index) => {
+        setTimeout(() => {
+            circle.style.opacity = '0';
+            circle.style.transition = `opacity ${duration}ms ease`;
+
+            if (index === totalCircles - 1) {
+                const whiteOverlay = document.createElement('div');
+                whiteOverlay.style.position = 'fixed';
+                whiteOverlay.style.top = '0';
+                whiteOverlay.style.left = '0';
+                whiteOverlay.style.width = '100%';
+                whiteOverlay.style.height = '100%';
+                whiteOverlay.style.backgroundColor = 'white';
+                whiteOverlay.style.opacity = '0';
+                whiteOverlay.style.transition = `opacity ${duration}ms ease`;
+                whiteOverlay.style.zIndex = '9999';
+                document.body.appendChild(whiteOverlay);
+
+                setTimeout(() => {
+                    whiteOverlay.style.opacity = '1';
+                }, delay);
+
+                setTimeout(() => {
+                    window.location.href = './7_final.html';
+                }, duration + delay);
+            }
+        }, index * delay);
+    });
+}
+
+        function showCharacterImage() {
+            dialogueBox.style.display = 'none';
+            isShowingImage = true;
+            
+            const characterImage = document.createElement('img');
+            characterImage.src = '../character/jeus1.png';
+            characterImage.style.position = 'absolute';
+            characterImage.style.left = '48%';
+            characterImage.style.top = '70%';
+            characterImage.style.transform = 'translate(-50%, -50%)';
+            characterImage.style.height = '250px';
+            characterImage.style.opacity = '0';
+            characterImage.style.transition = 'opacity 0.5s';
+            characterImage.id = 'character-image';
+            document.querySelector('.background').appendChild(characterImage);
+
+            setTimeout(() => {
+                characterImage.style.opacity = '1';
+            }, 100);
+
+            setTimeout(() => {
+                dialogueBox.style.display = 'block';
+                isShowingImage = false;
+                currentDialogue++;
+                showDialogue();
+            }, 2000);
+        }
+
+        function updatePortrait() {
+            document.querySelectorAll('.circle')[0].classList.add('filled');
+            document.querySelectorAll('.circle')[1].classList.add('filled');
+            document.querySelectorAll('.circle')[2].classList.add('filled');
+            document.querySelectorAll('.circle')[3].classList.add('filled');
+            document.querySelectorAll('.circle')[4].classList.add('filled');
+            
+            if (currentDialogue === dialogues.length - 1) {
+                document.querySelectorAll('.circle')[5].classList.add('filled');
+            }
+            
+            portrait.classList.remove('apollo');
+            
+            if (names[currentDialogue] === "토니") {
+                portrait.style.display = 'block';
+                portrait.src = '../character/tony_face.png';
+            } else if (names[currentDialogue] === "제우스") {
+                portrait.style.display = 'block';
+                portrait.src = '../character/jeus.png';
+                portrait.classList.add('apollo');
+            } else {
+                portrait.style.display = 'none';
+            }
+        }
+
+        function typeWriter(text, index = 0) {
+            if (index < text.length) {
+                dialogueTextElement.innerHTML += text.charAt(index);
+                typewriterTimeout = setTimeout(() => typeWriter(text, index + 1), 70);
+            } else {
+                isTyping = false;
+            }
+        }
+
+        function showDialogue() {
+            if (!isShowingImage) {
+                dialogueTextElement.innerHTML = '';
+                nameBox.textContent = names[currentDialogue];
+                updatePortrait();
+                isTyping = true;
+                typeWriter(dialogues[currentDialogue]);
+            }
+        }
+
+        function nextDialogue() {
+            if (isShowingImage) return;
+            
+            if (isTyping) {
+                clearTimeout(typewriterTimeout);
+                dialogueTextElement.innerHTML = dialogues[currentDialogue];
+                isTyping = false;
+            } else if (currentDialogue === 1) {
+                showCharacterImage();
+            } else if (currentDialogue < dialogues.length - 1) {
+                currentDialogue++;
+                showDialogue();
+            } else if (currentDialogue === dialogues.length - 1) {
+                performFinalAnimation();
+            }
+        }
+
+        function prevDialogue() {
+            if (isShowingImage) return;
+            
+            if (isTyping) {
+                clearTimeout(typewriterTimeout);
+                dialogueTextElement.innerHTML = dialogues[currentDialogue];
+                isTyping = false;
+            } else if (currentDialogue === 0) {
+                window.location.href = './5_psi_gameout.html';
+            } else {
+                currentDialogue--;
+                showDialogue();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (isShowingImage) return;
+            
+            if (event.key === "ArrowRight") {
+                if (currentDialogue === dialogues.length - 1) {
+                    performFinalAnimation();
+                } else {
+                    nextDialogue();
+                }
+            } else if (event.key === "ArrowLeft") {
+                if (currentDialogue === 0) {
+                    window.location.href = './5_psi_gameout.html';
+                } else {
+                    prevDialogue();
+                }
+            }
+        });
+
+        setTimeout(() => {
+    const dialogueBox = document.querySelector('.dialogue-box');
+    dialogueBox.style.opacity = '1';
+    showDialogue();
+}, 2000); 
+    </script>
+</body>
+</html>
