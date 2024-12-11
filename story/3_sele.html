@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+    <title>Find the Lights</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'DungGeunMo', sans-serif;
+            background-color: black;
+        }
+
+        .container {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease;
+            background-color: black;
+        }
+
+        .container.fade-in {
+            opacity: 1;
+        }
+
+        .background-fade {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease;
+            background: url('../background/3.jpg') no-repeat center center;
+            background-size: cover;
+        }
+
+        .background-fade.fade-in {
+            opacity: 1;
+        }
+        
+        .progress-circles {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .circle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .circle.filled {
+            background-color: white;
+        }
+        
+        .chapter-title {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 48px;
+            opacity: 0;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            25% { opacity: 1; }
+            75% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .character {
+            position: absolute;
+            bottom: 17%;
+            left: -180px;
+            width: 180px;
+            height: 180px;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            image-rendering: pixelated;
+            display: none;
+            animation: 
+                animate 0.8s steps(1) infinite,
+                move 5s linear forwards;
+        }
+
+        @keyframes animate {
+            0% { background-image: url('../character/jump.png'); }
+            25% { background-image: url('../character/walk.png'); }
+            50% { background-image: url('../character/jump2.png'); }
+            75% { background-image: url('../character/walk.png'); }
+        }
+        
+        @keyframes move {
+            0% { left: -180px; }
+            100% { left: 15%; }
+        }
+        
+        .dialogue-box {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            background-color: #202532;
+            padding: 40px;
+            border-radius: 10px;
+            border: 2px solid #fff;
+            color: white;
+            font-size: 28px;
+            text-align: left;
+            height: 200px;
+            display: none;
+        }
+        
+        .name-box {
+            position: absolute;
+            border-radius: 5px;
+            top: -40px;
+            left: 10px;
+            padding: 5px 10px;
+            background-color: #30343c;
+            border: 2px solid #fff;
+            color: white;
+            font-size: 30px;
+        }
+
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 30px;
+            background-color: white;
+            margin-left: 5px;
+            animation: cursor-blink 0.7s infinite;
+        }
+
+        @keyframes cursor-blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .prev-button {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 40px;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .next-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 40px;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            animation: blink 1s infinite;
+            outline: none;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        .choice-buttons {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            text-align: center;
+        }
+
+        .choice-button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 24px;
+            background-color: #30343c;
+            color: white;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'DungGeunMo', sans-serif;
+        }
+
+        .choice-button:hover {
+            background-color: #4a4f5c;
+        }
+
+        .floating-gif {
+    position: fixed;
+    right: 50px;
+    bottom: 17%;
+    width: 180px;
+    height: 180px;
+    z-index: 1000;
+    opacity: 0;  /* 초기에는 보이지 않음 */
+    transition: opacity 0.5s ease;  /* 부드러운 페이드인 효과 */
+}
+
+.floating-gif.show {
+    opacity: 1;
+}
+
+.pixel-frame {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    image-rendering: pixelated;
+}
+
+.frame1 {
+    background-image: url('../character/sele1.png');
+    animation: frame-swap 1s steps(1) infinite;
+}
+
+.frame2 {
+    background-image: url('../character/sele2.png');
+    animation: frame-swap 1s steps(1) infinite reverse;
+}
+
+@keyframes frame-swap {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+/* 기존 portrait 스타일 유지 */
+.portrait {
+    position: absolute;
+    left: -15px;
+    bottom: 320px;
+    height: 120px;
+    image-rendering: pixelated;
+    display: none;
+}
+
+/* 아폴론용 portrait 스타일 추가 */
+.portrait.apollo {
+    left: 2px;  /* 아폴론 초상화의 위치 조정 */
+    bottom: 320px; /* 아폴론 초상화의 높이 조정 */
+    height: 120px; /* 아폴론 초상화의 크기 조정 */
+}
+.home-logo {
+    position: fixed;
+    top: 20px;
+    left: -10px;
+    z-index: 1002; /* 모든 오버레이보다 위에 표시 */
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.home-logo:hover {
+    transform: scale(1.1); /* 호버 시 약간 확대 효과 */
+}
+
+.home-logo img {
+    width: 300px; /* 로고 크기 조절 */
+    height: auto;
+}
+</style>
+</head>
+<body>
+    <a href="../index.html" class="home-logo">
+        <img src="../logo-13.png" alt="홈으로 가기">
+    </a>
+    <div class="container">
+        <div class="floating-gif">
+            <div class="pixel-frame frame1"></div>
+            <div class="pixel-frame frame2"></div>
+        </div>
+        <div class="background-fade">
+            <div class="progress-circles">
+                <div class="circle filled"></div>
+                <div class="circle filled"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+                <div class="circle"></div>
+            </div>
+            <div class="chapter-title">Chapter.3<br>셀레네</div>
+            <div class="character"></div>
+            <div class="dialogue-box">
+                <div class="name-box">토니</div>
+                <img class="portrait" src="../character/tony_face.png" alt="토니">
+                <span id="dialogue-text"></span><span class="typing-cursor"></span>
+                <button class="prev-button" onclick="prevDialogue()">◀</button>
+                <button class="next-button" onclick="nextDialogue()">▶</button>
+                <div class="choice-buttons">
+                    <button class="choice-button" onclick="startGame()">게임 시작</button>
+                    <button class="choice-button" onclick="skipGame()">게임 스킵</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const character = document.querySelector('.character');
+        const dialogueBox = document.querySelector('.dialogue-box');
+        const dialogueTextElement = document.getElementById("dialogue-text");
+        const nameBox = document.querySelector('.name-box');
+        const prevButton = document.querySelector('.prev-button');
+        const portrait = document.querySelector('.portrait');
+        const nextButton = document.querySelector('.next-button');
+        const choiceButtons = document.querySelector('.choice-buttons');
+
+        let currentDialogue = 0;
+        const dialogues = [
+            "당신이 셀레네인가요?",
+            "인간이 나를 왜 찾지?",
+            "저는 토니라고 해요. 마을의 빛을 찾길 위해선 당신의 달의 빛이 필요해요.",
+            "당돌한 인간이구나, 그냥 줄 순 없지.",
+            "어둠의 그림자들을 피해서 밤의 달빛을 지켜내면 내가 너를 도와주겠다.",
+            "게임을 시작하시겠습니까?"
+        ];
+        
+        const names = [
+            "토니",
+            "셀레네",
+            "토니",
+            "셀레네",
+            "셀레네",
+            ""
+        ];
+
+        let isTyping = false;
+        let typewriterTimeout;
+
+        function updatePortrait() {
+            portrait.classList.remove('apollo'); // 클래스 초기화
+    
+    if (names[currentDialogue] === "토니") {
+        portrait.style.display = 'block';
+        portrait.src = '../character/tony_face.png';
+    } else if (names[currentDialogue] === "셀레네") {
+        portrait.style.display = 'block';
+        portrait.src = '../character/sele.png';
+        portrait.classList.add('apollo'); // 아폴론일 때 클래스 추가
+    } else {
+        portrait.style.display = 'none';
+    }
+}
+        function typeWriter(text, index = 0) {
+            if (index < text.length) {
+                dialogueTextElement.innerHTML += text.charAt(index);
+                typewriterTimeout = setTimeout(() => typeWriter(text, index + 1), 70);
+            } else {
+                isTyping = false;
+            }
+        }
+
+        function showDialogue() {
+            dialogueBox.style.display = 'block';
+            dialogueTextElement.innerHTML = '';
+            nameBox.textContent = names[currentDialogue];
+            updatePortrait();
+            isTyping = true;
+            typeWriter(dialogues[currentDialogue]);
+            updateButtons();
+        }
+
+        function nextDialogue() {
+            if (isTyping) {
+                clearTimeout(typewriterTimeout);
+                dialogueTextElement.innerHTML = dialogues[currentDialogue];
+                isTyping = false;
+            } else {
+                currentDialogue++;
+                if (currentDialogue < dialogues.length) {
+                    if (currentDialogue === dialogues.length - 1) {
+                        nextButton.style.display = 'none';
+                        choiceButtons.style.display = 'block';
+                    }
+                    showDialogue();
+                } else {
+                    currentDialogue = dialogues.length - 1;
+                }
+            }
+            updateButtons();
+        }
+
+        function prevDialogue() {
+            if (isTyping) {
+                clearTimeout(typewriterTimeout);
+                dialogueTextElement.innerHTML = "";
+                isTyping = false;
+            }
+            if (currentDialogue > 0) {
+                currentDialogue--;
+                showDialogue();
+            }
+            updateButtons();
+        }
+
+        function updateButtons() {
+            prevButton.style.display = currentDialogue > 0 ? 'block' : 'none';
+            if (currentDialogue === dialogues.length - 1) {
+                nextButton.style.display = 'none';
+                choiceButtons.style.display = 'block';
+            } else {
+                nextButton.style.display = 'block';
+                choiceButtons.style.display = 'none';
+            }
+        }
+
+        function startGame() {
+            window.location.href = '../game/down_game.html';
+        }
+
+        function skipGame() {
+            window.location.href = './3_sele_gameskip.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+    const container = document.querySelector('.container');
+    const backgroundFade = document.querySelector('.background-fade');
+    const floatingGif = document.querySelector('.floating-gif');
+    
+    setTimeout(() => {
+        container.classList.add('fade-in');
+        
+        setTimeout(() => {
+            backgroundFade.classList.add('fade-in');
+            
+            setTimeout(() => {
+                const chapterTitle = document.querySelector('.chapter-title');
+                chapterTitle.style.animation = 'fadeInOut 3s forwards';
+
+                // 챕터 타이틀 애니메이션이 끝나는 시점에 gif 표시
+                setTimeout(() => {
+                    floatingGif.classList.add('show');
+                }, 2600);  // 챕터 타이틀 애니메이션 길이와 동일
+
+                setTimeout(() => {
+                    character.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        const finalPosition = window.getComputedStyle(character).left;
+                        character.style.animation = 'none';
+                        character.style.left = finalPosition;
+                        void character.offsetWidth;
+                        character.style.animation = 'gif-effect 1s steps(1) infinite';
+                        setTimeout(showDialogue, 1000);
+                    }, 3000);
+                }, 2000);
+            }, 1000);
+        }, 500);
+    }, 100);
+});
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "ArrowRight") {
+                nextDialogue();
+            } else if (event.key === "ArrowLeft") {
+                prevDialogue();
+            }
+        });
+
+        const styleSheet = document.styleSheets[0];
+        styleSheet.insertRule(`
+            @keyframes gif-effect {
+                0%, 100% { background-image: url('../character/walk.png'); }
+                50% { background-image: url('../character/walk1.png'); }
+            }
+        `, styleSheet.cssRules.length);
+    </script>
+</body>
+</html>

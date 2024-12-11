@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find the Lights</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+            background-color: #f0f0f0; 
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background-color: black;
+            font-family: 'DungGeunMo', sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .fade-in {
+            opacity: 1 !important;
+        }
+        canvas { 
+            border: 1px solid #000; 
+            width: 1920px;
+            height: 1080px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        canvas.fade-in {
+            opacity: 1;
+        }
+
+        #gameOverScreen, #introScreen, #successScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 1000;
+            font-family: 'DungGeunMo';
+        }
+
+        #gameOverScreen h2, #successScreen h2 {
+            font-size: 72px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #gameOverScreen p {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        #introScreen {
+            opacity: 1;
+            transition: opacity 2s;
+            display: flex;
+        }
+
+        .button {
+            padding: 15px 30px;
+            font-size: 24px;
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 15px;
+            transition: transform 0.2s;
+            font-family: 'DungGeunMo';
+        }
+
+        .button:hover {
+            transform: scale(1.1);
+        }
+
+        #restartButton, #successButton {
+            background-color: rgb(255, 219, 18);
+        }
+
+        #restartButton:hover, #successButton:hover {
+            background-color: rgb(231, 181, 0);
+        }
+
+        #exitButton {
+            background-color: rgb(255, 219, 18);
+        }
+
+        #exitButton:hover {
+            background-color: rgb(231, 181, 0);
+        }
+
+        .intro-text {
+            font-size: 40px;
+            opacity: 0;
+            transition: opacity 2s;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="1920" height="1080"></canvas>
+        <div id="introScreen">
+            <div class="intro-text">태양의 길을 방해하는 장애물을 피해라</div>
+        </div>
+        <div id="gameOverScreen">
+            <h2>Game Over</h2>
+            <p id="finalScore"></p>
+            <div>
+                <button id="restartButton" class="button">다시하기</button>
+                <button id="exitButton" class="button" onclick="location.href='../story/2_helios_gameout.html'">나가기</button>
+            </div>
+        </div>
+        <div id="successScreen">
+            <h2>You Win!</h2>
+            <p>모든 장애물을 피했습니다!</p>
+            <button id="successButton" class="button" onclick="location.href='../story/2_helios_gameskip.html'">다음으로</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const introScreen = document.getElementById('introScreen');
+        const successScreen = document.getElementById('successScreen');
+        const finalScoreElement = document.getElementById('finalScore');
+        const restartButton = document.getElementById('restartButton');
+        const introText = document.querySelector('.intro-text');
+        const obstacleImage = new Image();
+        obstacleImage.src = '../character/h_bird.png';
+
+        const backgroundImage = new Image();
+        backgroundImage.src = '../background/2.jpg';
+        
+        const playerImage = new Image();
+        playerImage.src = '../character/h_game.png';
+
+        const GROUND_Y = 600;
+        const FPS = 60; // 목표 프레임레이트
+        const FRAME_TIME = 1000 / FPS; // 프레임당 시간 (밀리초)
+
+        const obstaclePositions = [
+            GROUND_Y,
+            GROUND_Y - 50,
+            GROUND_Y - 80
+        ];
+
+        const player = {
+            x: 500,
+            y: GROUND_Y,
+            width: 200,
+            height: 200,
+            velocityY: 0,
+            jumping: false,
+            doubleJumping: false,
+            jumpStrength: -20,
+            gravity: 0.8 * (60 / FPS) // FPS에 맞춰 중력 조정
+        };
+
+        const obstacle = {
+            x: 1920,
+            y: GROUND_Y,
+            width: 150,
+            height: 100,
+            color: '#0000FF',
+            speed: 12 * (80 / FPS) // FPS에 맞춰 속도 조정
+        };
+
+        let backgroundX = 0;
+        const backgroundSpeed = 2 * (80 / FPS); // FPS에 맞춰 배경 속도 조정
+        let score = 0;
+        let lastClickTime = 0;
+        let gameActive = false;
+        let lastFrameTime = 0;
+        
+        function initializeGame() {
+            const gameContainer = document.getElementById('gameContainer');
+            setTimeout(() => {
+                gameContainer.classList.add('fade-in');
+                setTimeout(() => {
+                    showIntro();
+                }, 1000);
+            }, 100);
+        }
+
+        function showIntro() {
+            introText.style.opacity = '1';
+            setTimeout(() => {
+                introText.style.opacity = '0';
+                setTimeout(() => {
+                    introScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        introScreen.style.display = 'none';
+                        startGame();
+                    }, 1000);
+                }, 1000);
+            }, 2000);
+        }
+
+        function getRandomPosition() {
+            const randomIndex = Math.floor(Math.random() * obstaclePositions.length);
+            return obstaclePositions[randomIndex];
+        }
+
+        function drawBackground() {
+            ctx.drawImage(backgroundImage, backgroundX, 0, canvas.width, canvas.height);
+            ctx.drawImage(backgroundImage, backgroundX + canvas.width, 0, canvas.width, canvas.height);
+            
+            backgroundX -= backgroundSpeed;
+            
+            if (backgroundX <= -canvas.width) {
+                backgroundX = 0;
+            }
+        }
+
+        function drawPlayer() {
+            ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+        }
+
+        function drawObstacle() {
+            ctx.drawImage(obstacleImage, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        }
+
+        function drawScore() {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '40px DungGeunMo';
+    ctx.fillText(`score: ${score}`, 80, 150);
+    ctx.fillText(`target: 15`, 80, 200); // Added target score display
+}
+
+        function checkSuccess() {
+            if (score >= 15) {
+                gameActive = false;
+                successScreen.style.display = 'flex';
+            }
+        }
+
+        function jump() {
+            if (!gameActive) return;
+
+            const currentTime = new Date().getTime();
+            const timeSinceLastClick = currentTime - lastClickTime;
+
+            if (!player.jumping) {
+                player.jumping = true;
+                player.velocityY = player.jumpStrength;
+            } else if (!player.doubleJumping && timeSinceLastClick < 300) {
+                player.doubleJumping = true;
+                player.velocityY = player.jumpStrength * 0.8;
+            }
+
+            lastClickTime = currentTime;
+        }
+
+        function updatePlayer() {
+            player.velocityY += player.gravity;
+            player.y += player.velocityY;
+
+            if (player.y > GROUND_Y) {
+                player.y = GROUND_Y;
+                player.velocityY = 0;
+                player.jumping = false;
+                player.doubleJumping = false;
+            }
+        }
+
+        function updateObstacle() {
+            obstacle.x -= obstacle.speed;
+            if (obstacle.x + obstacle.width < 0) {
+                obstacle.x = 1920;
+                obstacle.y = getRandomPosition();
+                score++;
+                // FPS에 맞춰 속도 증가 조정
+                obstacle.speed += (1.0 * (60 / FPS));
+                checkSuccess();
+            }
+        }
+
+        function checkCollision() {
+            const collisionBuffer = 40;
+            if (
+                player.x + collisionBuffer < obstacle.x + obstacle.width &&
+                player.x + player.width - collisionBuffer > obstacle.x &&
+                player.y + collisionBuffer < obstacle.y + obstacle.height &&
+                player.y + player.height - collisionBuffer > obstacle.y
+            ) {
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            gameActive = false;
+            finalScoreElement.textContent = `최종 점수: ${score}`;
+            gameOverScreen.style.display = 'flex';
+        }
+
+        function resetGame() {
+            backgroundX = 0;
+            player.y = GROUND_Y;
+            player.velocityY = 0;
+            player.jumping = false;
+            player.doubleJumping = false;
+            obstacle.x = 1920;
+            obstacle.y = GROUND_Y;
+            obstacle.speed = 12 * (60 / FPS); // FPS에 맞춰 초기 속도 재설정
+            score = 0;
+            gameActive = true;
+            gameOverScreen.style.display = 'none';
+            successScreen.style.display = 'none';
+        }
+
+        function startGame() {
+            gameActive = true;
+            backgroundX = 0;
+            
+            const gameCanvas = document.getElementById('gameCanvas');
+            gameCanvas.classList.add('fade-in');
+            
+            gameLoop();
+        }
+
+        function gameLoop(currentTime) {
+            // 프레임 시간 계산
+            if (!lastFrameTime) lastFrameTime = currentTime;
+            const deltaTime = currentTime - lastFrameTime;
+
+            // FPS 제한
+            if (deltaTime >= FRAME_TIME) {
+                lastFrameTime = currentTime - (deltaTime % FRAME_TIME);
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawBackground();
+                
+                if (gameActive) {
+                    updatePlayer();
+                    updateObstacle();
+                    checkCollision();
+                }
+
+                drawPlayer();
+                drawObstacle();
+                drawScore();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        let loadedImages = 0;
+        function handleImageLoad() {
+            loadedImages++;
+            if (loadedImages === 3) {
+                canvas.addEventListener('click', jump);
+                restartButton.addEventListener('click', resetGame);
+                initializeGame();
+            }
+        }
+
+        backgroundImage.onload = handleImageLoad;
+        playerImage.onload = handleImageLoad;
+        obstacleImage.onload = handleImageLoad;
+    </script>
+</body>
+</html>

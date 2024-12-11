@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+    <title>Story Viewer</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: rgb(28, 31, 41);
+            color: white;
+            font-family: 'DungGeunMo', sans-serif;
+            font-size: 30px;
+            line-height: 1.6;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #container {
+            width: 1920px;
+            height: 1080px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        #story-container {
+            width: 80%;
+            max-width: 1500px;
+            margin-bottom: 0px;
+            min-height: 200px;
+            position: relative;
+        }
+
+        #story {
+            text-align: left;
+        }
+
+        #nextBtn, #startBtn, #skipBtn {
+            font-family: 'DungGeunMo';
+            padding: 10px 20px;
+            font-size: 30px;
+            background-color: rgba(255, 255, 255, 0.459);
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            position: absolute;
+        }
+
+        #nextBtn {
+            bottom: 50px;
+            right: 70px;
+        }
+
+        #skipBtn {
+            bottom: 50px;
+            right: 200px; /* NEXT 버튼 왼쪽에 위치 */
+        }
+
+        #startBtn {
+            bottom: 50px;
+            right: 70px;
+            display: none;
+        }
+
+        #nextBtn:hover, #startBtn:hover, #skipBtn:hover {
+            background-color: #ddd;
+        }
+
+        /* 타이핑 커서 스타일 */
+        #cursor {
+            display: inline-block;
+            width: 3px;
+            height: 30px;
+            background-color: white;
+            margin-left: 2px;
+            animation: cursor-blink 0.7s infinite;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        @keyframes cursor-blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <div id="story-container">
+        <div id="story"></div>
+        <div id="cursor"></div>
+    </div>
+    <button id="nextBtn" onclick="handleNextClick()">NEXT</button>
+    <button id="skipBtn" onclick="skipToEnd()">SKIP</button>
+    <button id="startBtn" onclick="startGame()">게임 시작</button>
+</div>
+
+<script>
+    const paragraphs = [
+        `어느 날, 신의 장난으로 도시에서 빛이 완전히 사라졌다.<br>불씨조차 피워지지 않고, 해는 결코 다시 떠오르지 않았다.<br>사람들은 점점 얼어붙어가며 병들었고, 대지의 식물들은 죽어갔다.`,
+        `그 도시에 사는 한 인간은 병든 어머니를 모시고 있었고,<br>희망이 끊긴 절망 속에서 하늘을 향해 간절히 기도했다.<br>"제발, 저희 도시에 빛을 다시 내려주소서."`,
+        `그의 소원을 들은 제우스는 이를 측은히 여겨 한 가지 조건을 내걸었다.<br>"네가 여섯 신의 빛을 나에게 가져온다면,<br>마지막으로 내가 천상의 빛을 내려주어 네 도시에 다시 광명을 줄 것이다."`,
+        `제우스는 그에게 빛을 찾아야 할 신들을 일러주었다.<br>"첫째, 아폴론의 태양의 빛을 찾아라.<br>둘째, 헬리오스의 태양길의 빛이 필요하다."`,
+        `"셋째, 셀레네의 달빛을 가져오고,<br>넷째, 헤카테의 횃불에서 나는 빛을 찾아라."`,
+        `"마지막으로, 프시케의 영혼의 빛을 구해오너라.<br>이 다섯 빛을 모으면 내가 천상의 빛으로 이 여정을 완성시켜주마."`,
+        `인간은 제우스의 제안을 받아들였고,<br>어머니와 도시를 구하기 위해 홀로 신들의 영역을 향한 위대한 여정에 나섰다.`,
+        `여정을 떠나겠습니까?`
+    ];
+
+    let currentParagraph = 0;
+    let typingIndex = 0;
+    let typingSpeed = 50; // 타이핑 속도 (밀리초)
+    let typingInterval;
+    let isTyping = false;
+
+    function typeWriter() {
+        const text = paragraphs[currentParagraph];
+        if (typingIndex < text.length) {
+            if (text.substr(typingIndex, 4) === '<br>') {
+                document.getElementById('story').innerHTML += '<br>';
+                typingIndex += 4;
+            } else {
+                document.getElementById('story').innerHTML += text.charAt(typingIndex);
+                typingIndex++;
+            }
+            updateCursorPosition();
+            typingInterval = setTimeout(typeWriter, typingSpeed);
+        } else {
+            isTyping = false;
+        }
+    }
+
+    function updateCursorPosition() {
+        const storyElement = document.getElementById('story');
+        const cursorElement = document.getElementById('cursor');
+        const lastChar = storyElement.lastChild;
+        
+        if (lastChar && lastChar.nodeType === Node.TEXT_NODE) {
+            const range = document.createRange();
+            range.setStart(storyElement, storyElement.childNodes.length - 1);
+            range.setEnd(storyElement, storyElement.childNodes.length);
+            const rect = range.getBoundingClientRect();
+            
+            cursorElement.style.left = (rect.right - storyElement.getBoundingClientRect().left) + 'px';
+            cursorElement.style.top = (rect.top - storyElement.getBoundingClientRect().top) + 'px';
+        } else if (lastChar && lastChar.nodeType === Node.ELEMENT_NODE && lastChar.tagName === 'BR') {
+            cursorElement.style.left = '0px';
+            cursorElement.style.top = (storyElement.offsetHeight) + 'px';
+        }
+    }
+
+    function startTyping() {
+        if (!isTyping) {
+            isTyping = true;
+            document.getElementById('story').innerHTML = '';
+            typingIndex = 0;
+            typeWriter();
+        }
+    }
+
+    function handleNextClick() {
+        if (isTyping) {
+            // 타이핑 중이면 즉시 전체 텍스트 표시
+            clearTimeout(typingInterval);
+            document.getElementById('story').innerHTML = paragraphs[currentParagraph];
+            isTyping = false;
+            updateCursorPosition();
+        } else {
+            // 다음 문단으로 이동
+            if (currentParagraph < paragraphs.length - 1) {
+                currentParagraph++;
+                startTyping();
+            } else {
+                showStartButton();
+            }
+        }
+    }
+
+    function skipToEnd() {
+        clearTimeout(typingInterval);
+        currentParagraph = paragraphs.length - 1;
+        document.getElementById('story').innerHTML = paragraphs[currentParagraph];
+        isTyping = false;
+        updateCursorPosition();
+        showStartButton();
+    }
+
+    function showStartButton() {
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('skipBtn').style.display = 'none';
+        document.getElementById('startBtn').style.display = 'block';
+        document.getElementById('cursor').style.display = 'none';
+    }
+
+    function startGame() {
+        window.location.href = "./story/1_delpo.html";
+    }
+
+    window.onload = function() {
+        setTimeout(startTyping, 2000);
+    };
+</script>
+</body>
+</html>

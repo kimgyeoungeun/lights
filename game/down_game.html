@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Find the Lights</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+        }
+
+        .game-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        .game-container.playing {
+            cursor: none;
+        }
+        
+        .player {
+            width: 170px;
+            height: 170px;
+            position: absolute;
+            bottom: 20%;
+            z-index: 2;
+            transition: transform 0.3s;
+        }
+        
+        .player img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .falling-object {
+            width: 100px;
+            height: 100px;
+            position: absolute;
+            z-index: 2;
+        }
+
+        .falling-object img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .score-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            padding: 10px 20px;
+            color: white;
+            font-family: 'DungGeunMo';
+        }
+        
+        .score {
+            font-size: 28px;
+            margin: 5px 0;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        
+        .target-score {
+            font-size: 20px;
+            margin: 5px 0;
+            text-align: center;
+            color: #aaa;
+            padding-top: 10px;
+        }
+
+        .game-over, .game-win {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            font-family: 'DungGeunMo';
+        }
+
+        .game-over h2, .game-win h2 {
+            font-size: 72px;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .game-over p, .game-win p {
+            font-size: 24px;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .game-button {
+            padding: 15px 30px;
+            font-size: 24px;
+            color: rgb(255, 219, 18);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 15px;
+            transition: transform 0.2s;
+            font-family: 'DungGeunMo';
+        }
+
+        .game-button:hover {
+            transform: scale(1.1);
+        }
+
+        .restart-button, .exit-button {
+            background-color: rgb(255, 219, 18);
+            color: rgb(0, 0, 0);
+        }
+
+        .restart-button:hover, .exit-button:hover {
+            background-color: rgb(231, 181, 0);
+        }
+
+        #introScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            opacity: 1;
+            transition: opacity 2s;
+            z-index: 1000;
+        }
+
+        .intro-text {
+            font-size: 40px;
+            opacity: 0;
+            transition: opacity 1s ease;
+            text-align: center;
+            margin-bottom: 30px;
+            font-family: 'DungGeunMo';
+            color: white;
+        }
+
+        .intro-text.active {
+            opacity: 1;
+        }
+
+        .game-content {
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .game-content.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container playing" id="gameContainer">
+        <div id="introScreen">
+            <div class="intro-text">떨어지는 어둠의 그림자를 피해라!</div>
+        </div>
+        
+        <div class="game-content">
+            <div class="score-container">
+                <div class="score">떨어지는 어둠의 그림자를 피해라!</div>
+                <div class="target-score">목표: 30점<br><span id="score">0</span></div>
+            </div>
+            <img src="../background/down_game.jpg" alt="배경" class="game-background">
+            <div class="player" id="player">
+                <img src="../character/tony.png" alt="플레이어" id="playerImage">
+            </div>
+        </div>
+        <div class="game-over" id="gameOver">
+            <h2>Game Over</h2>
+            <p>다시 도전해보세요!</p>
+            <div class="button-container">
+                <button class="game-button restart-button" onclick="restartGame()">다시하기</button>
+                <button class="game-button exit-button" onclick="exitGame()">나가기</button>
+            </div>
+        </div>
+        <div class="game-win" id="gameWin">
+            <h2>You Win!</h2>
+            <p>목표를 달성했습니다!</p>
+            <div class="button-container">
+                <button class="game-button restart-button" onclick="restartGame()">다시하기</button>
+                <button class="game-button exit-button" onclick="exitGame()">나가기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+const gameContainer = document.getElementById('gameContainer');
+const player = document.getElementById('player');
+const playerImage = document.getElementById('playerImage');
+const gameOver = document.getElementById('gameOver');
+const gameWin = document.getElementById('gameWin');
+const scoreElement = document.getElementById('score');
+
+// FPS 설정
+const FPS = 60;
+const FRAME_TIME = 1000 / FPS;
+let lastFrameTime = 0;
+let deltaAccumulator = 0;
+
+let score = 0;
+let gameRunning = true;
+let fallingObjects = [];
+const TARGET_SCORE = 30;
+
+// 낙하 속도 상수 정의
+const BASE_FALLING_SPEED = 8; // 기본 속도 - 이 값을 조절하여 낙하 속도 변경
+const PIXELS_PER_SECOND = BASE_FALLING_SPEED * 60; // 초당 이동 픽셀
+
+let currentMinSpawnTime = 300;    // 최소 0.3초마다 생성
+let currentMaxSpawnTime = 500;    // 최대 0.5초마다 생성
+const MIN_POSSIBLE_SPAWN_TIME = 100;  // 난이도가 올라갈 때 최소 0.1초까지 줄어들 수 있음
+const SPAWN_TIME_DECREASE_RATE = 50;
+const DIFFICULTY_INCREASE_INTERVAL = 2;
+const PLAYER_RESET_DELAY = 1000;
+
+let isPlayerHit = false;
+let originalBottom = '20%';
+
+player.style.left = '50%';
+player.style.transform = 'translateX(-50%)';
+player.style.bottom = originalBottom;
+
+function resetPlayer() {
+    if (gameRunning) {
+        playerImage.src = '../character/tony.png';
+        player.style.bottom = originalBottom;
+        isPlayerHit = false;
+    }
+}
+
+gameContainer.addEventListener('mousemove', (e) => {
+    if (!gameRunning || isPlayerHit) return;
+    
+    const containerRect = gameContainer.getBoundingClientRect();
+    const mouseX = e.clientX - containerRect.left;
+    const containerWidth = containerRect.width;
+    
+    const maxX = containerWidth - player.offsetWidth;
+    const playerX = Math.max(0, Math.min(mouseX - player.offsetWidth / 2, maxX));
+    
+    player.style.left = playerX + 'px';
+});
+
+function handleCollision() {
+    if (!isPlayerHit) {
+        isPlayerHit = true;
+        playerImage.src = '../character/downfail.png';
+        player.style.bottom = '10%';
+        setTimeout(resetPlayer, PLAYER_RESET_DELAY);
+    }
+}
+
+function increaseDifficulty() {
+    if (currentMinSpawnTime > MIN_POSSIBLE_SPAWN_TIME) {
+        currentMinSpawnTime = Math.max(MIN_POSSIBLE_SPAWN_TIME, currentMinSpawnTime - SPAWN_TIME_DECREASE_RATE);
+        currentMaxSpawnTime = Math.max(currentMinSpawnTime + 500, currentMaxSpawnTime - SPAWN_TIME_DECREASE_RATE);
+    }
+    console.log(`Difficulty increased - Spawn time: ${currentMinSpawnTime}~${currentMaxSpawnTime}ms`);
+}
+
+function createFallingObject() {
+    if (!gameRunning) return;
+    
+    const object = document.createElement('div');
+    object.className = 'falling-object';
+    object.innerHTML = '<img src="../character/dark.png" alt="떨어지는 물체">';
+    
+    const containerWidth = gameContainer.offsetWidth;
+    const randomX = Math.random() * (containerWidth - 130);
+    object.style.left = randomX + 'px';
+    object.style.top = '0px';
+    
+    gameContainer.appendChild(object);
+    fallingObjects.push({
+        element: object,
+        position: 0
+    });
+    
+    const nextTime = currentMinSpawnTime + Math.random() * (currentMaxSpawnTime - currentMinSpawnTime);
+    setTimeout(createFallingObject, nextTime);
+}
+
+function updateGame(currentTime) {
+    if (!lastFrameTime) {
+        lastFrameTime = currentTime;
+    }
+
+    deltaAccumulator += currentTime - lastFrameTime;
+    lastFrameTime = currentTime;
+
+    while (deltaAccumulator >= FRAME_TIME) {
+        if (!gameRunning) return;
+
+        const containerHeight = gameContainer.offsetHeight;
+        const frameMove = PIXELS_PER_SECOND / FPS;
+        
+        fallingObjects.forEach((object, index) => {
+            object.position += frameMove;
+            object.element.style.top = `${Math.round(object.position)}px`;
+
+            if (checkCollision(object.element, player)) {
+                handleCollision();
+                endGame(false);
+            }
+
+            if (object.position > containerHeight) {
+                gameContainer.removeChild(object.element);
+                fallingObjects.splice(index, 1);
+                score += 1;
+                scoreElement.textContent = score;
+
+                if (score % DIFFICULTY_INCREASE_INTERVAL === 0) {
+                    increaseDifficulty();
+                }
+
+                if (score >= TARGET_SCORE) {
+                    endGame(true);
+                }
+            }
+        });
+
+        deltaAccumulator -= FRAME_TIME;
+    }
+
+    requestAnimationFrame(updateGame);
+}
+
+function checkCollision(object, player) {
+    const objectRect = object.getBoundingClientRect();
+    const playerRect = player.getBoundingClientRect();
+    
+    return !(
+        objectRect.right < playerRect.left || 
+        objectRect.left > playerRect.right || 
+        objectRect.bottom < playerRect.top || 
+        objectRect.top > playerRect.bottom
+    );
+}
+
+function endGame(isWin) {
+    gameRunning = false;
+    gameContainer.classList.remove('playing');
+    
+    if (isWin) {
+        gameWin.style.display = 'flex';
+    } else {
+        gameOver.style.display = 'flex';
+    }
+}
+
+function restartGame() {
+    gameRunning = true;
+    gameContainer.classList.add('playing');
+    
+    score = 0;
+    scoreElement.textContent = score;
+    gameOver.style.display = 'none';
+    gameWin.style.display = 'none';
+    
+    currentMinSpawnTime = 300;
+    currentMaxSpawnTime = 500;
+    
+    playerImage.src = '../character/tony.png';
+    player.style.bottom = originalBottom;
+    isPlayerHit = false;
+    
+    fallingObjects.forEach(object => {
+        gameContainer.removeChild(object.element);
+    });
+    fallingObjects = [];
+    lastFrameTime = 0;
+    deltaAccumulator = 0;
+    
+    createFallingObject();
+    requestAnimationFrame(updateGame);
+}
+
+function exitGame() {
+    // 게임 성공/실패에 따라 다른 URL로 이동
+    const successPath = '../story/3_sele_gameskip.html';
+    const failPath = '../story/3_sele_gameout.html';
+    
+    // 게임 성공 여부에 따라 URL 설정
+    const redirectPath = score >= TARGET_SCORE ? successPath : failPath;
+    window.location.href = redirectPath;
+}
+
+function initializeGame() {
+    showIntro();
+}
+
+function showIntro() {
+    const introText = document.querySelector('.intro-text');
+    const introScreen = document.getElementById('introScreen');
+    const gameContent = document.querySelector('.game-content');
+    
+    gameContent.style.opacity = '0';
+    
+    setTimeout(() => {
+        introText.style.opacity = '1';
+        
+        setTimeout(() => {
+            introText.style.opacity = '0';
+            
+            setTimeout(() => {
+                introScreen.style.opacity = '0';
+                
+                setTimeout(() => {
+                    introScreen.style.display = 'none';
+                    gameContent.style.opacity = '1';
+                    createFallingObject();
+                    requestAnimationFrame(updateGame);
+                }, 2000);
+            }, 2000);
+        }, 2000);
+    }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', initializeGame);
+    </script>
+</body>
+</html>

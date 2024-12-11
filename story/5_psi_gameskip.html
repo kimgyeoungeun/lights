@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+    <title>Find the Lights</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'DungGeunMo', sans-serif;
+        }
+        
+        .background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('../background/5.jpg') no-repeat center center;
+            background-size: cover;
+        }
+        
+        .dialogue-box {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            background-color: #202532;
+            padding: 40px;
+            border-radius: 10px;
+            border: 2px solid #fff;
+            color: white;
+            font-size: 28px;
+            text-align: left;
+            height: 200px;
+        }
+        
+        .name-box {
+            position: absolute;
+            border-radius: 5px;
+            top: -40px;
+            left: 10px;
+            padding: 5px 10px;
+            background-color: #30343c;
+            border: 2px solid #fff;
+            color: white;
+            font-size: 30px;
+        }
+
+        /* 기존 portrait 스타일 유지 */
+.portrait {
+    position: absolute;
+    left: -15px;
+    bottom: 320px;
+    height: 120px;
+    image-rendering: pixelated;
+    display: none;
+}
+
+/* 아폴론용 portrait 스타일 추가 */
+.portrait.apollo {
+    left: -15px;  /* 아폴론 초상화의 위치 조정 */
+    bottom: 320px; /* 아폴론 초상화의 높이 조정 */
+    height: 120px; /* 아폴론 초상화의 크기 조정 */
+}
+
+        .typing-cursor {
+            display: inline-block;
+            width: 3px;
+            height: 30px;
+            background-color: white;
+            margin-left: 5px;
+            animation: cursor-blink 0.7s infinite;
+        }
+
+        @keyframes cursor-blink {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .prev-button {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 40px;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .next-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 40px;
+            color: white;
+            background: none;
+            border: none;
+            cursor: pointer;
+            outline: none;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+        .progress-circles {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .circle {
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .circle.filled {
+            background-color: white;
+        }
+        .home-logo {
+    position: fixed;
+    top: 20px;
+    left: -10px;
+    z-index: 1002; /* 모든 오버레이보다 위에 표시 */
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.home-logo:hover {
+    transform: scale(1.1); /* 호버 시 약간 확대 효과 */
+}
+
+.home-logo img {
+    width: 300px; /* 로고 크기 조절 */
+    height: auto;
+}
+</style>
+</head>
+<body>
+    <a href="../index.html" class="home-logo">
+        <img src="../logo-13.png" alt="홈으로 가기">
+    </a>
+    <div class="background">
+        <div class="progress-circles">
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+            <div class="circle"></div>
+        </div>
+        <div class="dialogue-box">
+            <div class="name-box">토니</div>
+            <img class="portrait" src="../character/tony_face.png" alt="토니">
+            <span id="dialogue-text"></span><span class="typing-cursor"></span>
+            <button class="prev-button" onclick="prevDialogue()">◀</button>
+            <button class="next-button" onclick="nextDialogue()">▶</button>
+        </div>
+    </div>
+
+    <script>
+ const dialogueBox = document.querySelector('.dialogue-box');
+const dialogueTextElement = document.getElementById("dialogue-text");
+const nameBox = document.querySelector('.name-box');
+const prevButton = document.querySelector('.prev-button');
+const nextButton = document.querySelector('.next-button');
+const portrait = document.querySelector('.portrait');
+
+let currentDialogue = 0;
+let isTyping = false;
+let typewriterTimeout;
+
+const dialogues = [
+   "문장을 멋지게 완성해주었구나",
+   "여기 영혼의 빛이야. 여정을 잘 마무리 하길 바래.",
+   "감사합니다!"
+];
+
+const names = [
+   "프시케",
+   "프시케",
+   "토니"
+];
+
+// 이전 페이지 버튼 추가
+function addPreviousPageButton() {
+   if (currentDialogue === 0) {
+       const prevPageButton = document.createElement('button');
+       prevPageButton.classList.add('prev-button');
+       prevPageButton.innerHTML = '◀';
+       prevPageButton.style.left = '20px';
+       prevPageButton.onclick = () => {
+           window.location.href = './5_psi_gameout.html'; // 이전 페이지 경로
+       };
+       dialogueBox.appendChild(prevPageButton);
+   }
+}
+
+function updatePortrait() {
+   // 첫 번째 동그라미는 항상 채워져 있게 설정
+   document.querySelectorAll('.circle')[0].classList.add('filled');
+   document.querySelectorAll('.circle')[1].classList.add('filled');
+   document.querySelectorAll('.circle')[2].classList.add('filled');
+   document.querySelectorAll('.circle')[3].classList.add('filled');
+   if (names[currentDialogue] === "토니") {
+       portrait.style.display = 'block';
+       if (currentDialogue === dialogues.length - 1) {
+           // 마지막 대화("감사합니다!")에서 4 번째 동그라미 채우기
+           document.querySelectorAll('.circle')[4].classList.add('filled');
+        }
+   } else {
+       portrait.style.display = 'none';
+   }
+   portrait.classList.remove('apollo'); // 클래스 초기화
+    
+    if (names[currentDialogue] === "토니") {
+        portrait.style.display = 'block';
+        portrait.src = '../character/tony_face.png';
+    } else if (names[currentDialogue] === "프시케") {
+        portrait.style.display = 'block';
+        portrait.src = '../character/psi.png';
+        portrait.classList.add('apollo'); // 아폴론일 때 클래스 추가
+    } else {
+        portrait.style.display = 'none';
+    }
+}
+
+
+
+function typeWriter(text, index = 0) {
+   if (index < text.length) {
+       dialogueTextElement.innerHTML += text.charAt(index);
+       typewriterTimeout = setTimeout(() => typeWriter(text, index + 1), 70);
+   } else {
+       isTyping = false;
+   }
+}
+
+function showDialogue() {
+   dialogueTextElement.innerHTML = '';
+   nameBox.textContent = names[currentDialogue];
+   updatePortrait();
+   isTyping = true;
+   typeWriter(dialogues[currentDialogue]);
+   updateButtons();
+   addPreviousPageButton();
+}
+
+function nextDialogue() {
+   if (isTyping) {
+       clearTimeout(typewriterTimeout);
+       dialogueTextElement.innerHTML = dialogues[currentDialogue];
+       isTyping = false;
+   } else if (currentDialogue < dialogues.length - 1) {
+       currentDialogue++;
+       showDialogue();
+   } else if (currentDialogue === dialogues.length - 1) {
+       // 마지막 대화에서 다음 페이지로 이동
+       window.location.href = './6_jeu_gameskip.html';
+   }
+}
+
+function prevDialogue() {
+   if (isTyping) {
+       clearTimeout(typewriterTimeout);
+       dialogueTextElement.innerHTML = dialogues[currentDialogue];
+       isTyping = false;
+   } else if (currentDialogue === 0) {
+       // 첫 대화에서 이전 페이지로 이동
+       window.location.href = './5_psi_gameout.html';
+   } else if (currentDialogue > 0) {
+       currentDialogue--;
+       showDialogue();
+       // 이전 대화로 돌아갈 때 두 번째 동그라미 채우기 제거
+       if (currentDialogue < dialogues.length - 1) {
+           document.querySelectorAll('.circle')[4].classList.remove('filled');
+       }
+   }
+}
+
+function updateButtons() {
+   const buttons = dialogueBox.querySelectorAll('.prev-button');
+   buttons.forEach(button => button.remove()); // 기존 버튼들 제거
+
+   if (currentDialogue === dialogues.length - 1) {
+       // 마지막 대화에서는 다음 페이지로 가는 버튼 표시
+       nextButton.style.display = 'block';
+       nextButton.onclick = () => window.location.href = './6_jeu_gameskip.html';
+       
+       // 이전 대화 버튼 추가
+       const prevDialogueButton = document.createElement('button');
+       prevDialogueButton.classList.add('prev-button');
+       prevDialogueButton.innerHTML = '◀';
+       prevDialogueButton.style.left = '20px';
+       prevDialogueButton.onclick = prevDialogue;
+       dialogueBox.appendChild(prevDialogueButton);
+   } else {
+       if (currentDialogue === 0) {
+           // 첫 번째 대화에서는 이전 페이지 버튼 추가
+           addPreviousPageButton();
+       } else {
+           // 이전 대화 버튼 추가
+           const prevDialogueButton = document.createElement('button');
+           prevDialogueButton.classList.add('prev-button');
+           prevDialogueButton.innerHTML = '◀';
+           prevDialogueButton.style.left = '20px';
+           prevDialogueButton.onclick = prevDialogue;
+           dialogueBox.appendChild(prevDialogueButton);
+       }
+       nextButton.style.display = 'block';
+       nextButton.onclick = nextDialogue;
+   }
+}
+
+showDialogue();
+
+document.addEventListener('keydown', function(event) {
+   if (event.key === "ArrowRight") {
+       if (currentDialogue === dialogues.length - 1) {
+           window.location.href = './6_jeu_gameskip.html';
+       } else {
+           nextDialogue();
+       }
+   } else if (event.key === "ArrowLeft") {
+       if (currentDialogue === 0) {
+           window.location.href = '.5_psi_gameout.html';
+       } else {
+           prevDialogue();
+       }
+   }
+});
+    </script>
+</body>
+</html>

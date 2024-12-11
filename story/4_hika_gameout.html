@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+    <title>Find the Lights</title>
+    <style>
+        @font-face {
+            font-family: 'DungGeunMo';
+            src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'DungGeunMo', sans-serif;
+        }
+        
+        .background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: url('../background/4.jpg') no-repeat center center;
+            background-size: cover;
+        }
+        
+        .dialogue-box {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            background-color: #202532;
+            padding: 40px;
+            border-radius: 10px;
+            border: 2px solid #fff;
+            color: white;
+            font-size: 28px;
+            text-align: center;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .choice-buttons {
+            margin-top: 30px;
+        }
+
+        .choice-button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            font-size: 24px;
+            background-color: #30343c;
+            color: white;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'DungGeunMo', sans-serif;
+        }
+
+        .choice-button:hover {
+            background-color: #4a4f5c;
+        }
+        .home-logo {
+    position: fixed;
+    top: 20px;
+    left: -10px;
+    z-index: 1002; /* 모든 오버레이보다 위에 표시 */
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.home-logo:hover {
+    transform: scale(1.1); /* 호버 시 약간 확대 효과 */
+}
+
+.home-logo img {
+    width: 300px; /* 로고 크기 조절 */
+    height: auto;
+}
+</style>
+</head>
+<body>
+    <a href="../index.html" class="home-logo">
+        <img src="../logo-13.png" alt="홈으로 가기">
+    </a>
+    <div class="background">
+        <div class="dialogue-box">
+            <div id="dialogue-text">게임을 시작하시겠습니까?</div>
+            <div class="choice-buttons">
+                <button class="choice-button" onclick="startGame()">게임 시작</button>
+                <button class="choice-button" onclick="skipGame()">게임 스킵</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startGame() {
+            window.location.href = '../game/find_game.html';
+        }
+
+        function skipGame() {
+            window.location.href = './4_hika_gameskip.html';
+        }
+    </script>
+</body>
+</html>
